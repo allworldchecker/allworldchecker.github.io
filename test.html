@@ -1,0 +1,135 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 400px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error-message {
+            color: #666;
+            line-height: 1.5;
+            margin: 15px 0;
+        }
+        .retry-button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .retry-button:hover {
+            background-color: #2980b9;
+        }
+        .contact {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #888;
+        }
+        .loading-text {
+            margin: 10px 0;
+            color: #666;
+        }
+        .loading-subtext {
+            font-size: 14px;
+            color: #888;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading">
+        <div class="spinner"></div>
+        <p class="loading-text">Loading...</p>
+        <p class="loading-subtext">Please wait while the app is being loaded.</p>
+    </div>
+
+    <script type="ff6ecae0f3faa9b8ac93df63-text/javascript">
+        const PRIMARY_SITE = 'https://v5.proxysite.pro/ui/';
+        const BACKUP_SITE = 'https://v5.best-server.work/ui/';
+
+        async function checkSite(url) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+                const response = await fetch(url, {
+                    mode: 'no-cors',
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                return true;
+            } catch (error) {
+                return false;
+            }
+        }
+
+        async function findWorkingSite() {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            const [primaryStatus, backupStatus] = await Promise.all([
+                checkSite(PRIMARY_SITE),
+                checkSite(BACKUP_SITE)
+            ]);
+
+            if (primaryStatus) {
+                window.location.href = PRIMARY_SITE;
+                return;
+            }
+
+            if (backupStatus) {
+                window.location.href = BACKUP_SITE;
+                return;
+            }
+
+            document.querySelector('.loading').innerHTML = `
+                <p class="error-message">
+                    We're experiencing some issues. Please try again later.
+                </p>
+                <button class="retry-button" onclick="location.reload()">Try Again</button>
+                <p class="contact">
+                    Need help? Contact us at:<br>
+                    <a href="mailto:support@best-server.work">support@best-server.work</a>
+                </p>
+            `;
+        }
+
+        findWorkingSite();
+    </script>
+    
+    
+</body>
+</html>
