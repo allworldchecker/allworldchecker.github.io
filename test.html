@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Site Availability Check</title>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <title>Check</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -22,7 +21,6 @@
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             max-width: 400px;
-            width: 90%;
         }
         .spinner {
             border: 4px solid #f3f3f3;
@@ -42,28 +40,17 @@
             line-height: 1.5;
             margin: 15px 0;
         }
-        .button {
+        .retry-button {
+            background-color: #3498db;
+            color: white;
             border: none;
             padding: 10px 20px;
             border-radius: 4px;
             cursor: pointer;
             transition: background-color 0.3s;
-            margin: 5px;
-            font-size: 14px;
         }
-        .primary-button {
-            background-color: #3498db;
-            color: white;
-        }
-        .primary-button:hover {
+        .retry-button:hover {
             background-color: #2980b9;
-        }
-        .secondary-button {
-            background-color: #95a5a6;
-            color: white;
-        }
-        .secondary-button:hover {
-            background-color: #7f8c8d;
         }
         .contact {
             margin-top: 15px;
@@ -79,425 +66,97 @@
             color: #888;
             margin-top: 5px;
         }
-        .noscript-links {
-            text-align: center;
-            margin: 20px 0;
-        }
-        .noscript-links a {
-            display: block;
-            margin: 10px 0;
-            color: #3498db;
-            text-decoration: none;
-        }
-        .noscript-links a:hover {
-            text-decoration: underline;
-        }
-        .country-notice {
-            background-color: #fff3cd;
-            border: 1px solid #ffeeba;
-            color: #856404;
-            padding: 10px;
-            border-radius: 4px;
-            margin: 10px 0;
-            font-size: 14px;
-            text-align: center;
-        }
-        .button-group {
-            margin-top: 15px;
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-        }
     </style>
+
+<script type="text/javascript">var _Hasync= _Hasync|| [];
+_Hasync.push(['Histats.start', '1,4932638,4,0,0,0,00010000']);
+_Hasync.push(['Histats.fasi', '1']);
+_Hasync.push(['Histats.track_hits', '']);
+(function() {
+var hs = document.createElement('script'); hs.type = 'text/javascript'; hs.async = true;
+hs.src = ('//s10.histats.com/js15_as.js');
+(document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(hs);
+})();</script>
+<noscript><a href="/" target="_blank"><img  src="//sstatic1.histats.com/0.gif?4932638&101" alt="counter" border="0"></a></noscript>
+    
 </head>
 <body>
-    <!-- 无JavaScript时的后备方案 -->
-    <noscript>
-        <div class="loading">
-            <h2>Select a site to visit:</h2>
-            <div class="noscript-links">
-                <a href="https://user1.proxysite.pro/uc/">Primary Site</a>
-                <a href="https://workpanel.pages.dev/uc/">Backup Site</a>
-            </div>
-            <p class="contact">
-                Need help? Contact us at:<br>
-                <a href="mailto:support@best-server.work">support@best-server.work</a>
-            </p>
-        </div>
-    </noscript>
-
-
-    <div id="app">
-        <div class="loading" v-if="!noScript">
-            <template v-if="checking">
-                <div class="spinner"></div>
-                <p class="loading-text">{{ t('loading') }}</p>
-                <p class="loading-subtext">{{ t('checkingAvailability') }}</p>
-            </template>
-            
-            <template v-if="showCountryWarning">
-                <div class="country-notice" v-html="countryNotice"></div>
-                <div class="button-group">
-                    <button class="button primary-button" @click="proceedAnyway">{{ t('proceed') }}</button>
-                    <!--<button class="button secondary-button" @click="cancelAccess">{{ t('cancel') }}</button>-->
-                </div>
-                <p class="contact">
-                    {{ t('needHelp') }}<br>
-                    <a href="mailto:support@best-server.work">support@best-server.work</a>
-                </p>
-            </template>
-
-            <template v-if="!checking && !showCountryWarning">
-                <p class="error-message">
-                    {{ errorMessage }}
-                </p>
-                <button class="button primary-button" @click="retryCheck">{{ t('retry') }}</button>
-                <p class="contact">
-                    {{ t('needHelp') }}<br>
-                    <a href="mailto:support@best-server.work">support@best-server.work</a>
-                </p>
-            </template>
-        </div>
+    <div class="loading">
+        <div class="spinner"></div>
+        <p class="loading-text">Loading...</p>
+        <p class="loading-subtext">Please wait while the app is being loaded.</p>
     </div>
 
     <script>
-        const { createApp, ref, computed } = Vue;
+        const PRIMARY_SITE = 'https://user1.proxysite.pro/uc/';
+        const BACKUP_SITE = 'https://workpanel.pages.dev/uc/';
+        const MAX_RETRIES = 3;
+        const TIMEOUT = 3000;
 
-        const translations = {
-            en: {
-                loading: 'Loading...',
-                checkingAvailability: 'Please wait while we check site availability.',
-                proceed: 'Proceed Anyway',
-                cancel: 'Cancel',
-                needHelp: 'Need help? Contact us at:',
-                retry: 'Try Again',
-                error: 'Sorry, all sites are currently unavailable. Please try again later.',
-                checkError: 'An error occurred during the check. Please try again.',
-                cancelled: 'You have cancelled the access. Click retry if you change your mind.',
-                restrictedCountry: (country) => `Note: We detected that you are accessing from ${country}.<br>
-                    Due to local network restrictions, the connection might be unstable.<br>
-                    We recommend using a VPN or proxy service for better access.`,
-                countries: {
-                    'CN': 'China', 'IR': 'Iran', 'RU': 'Russia',
-                    'VN': 'Vietnam', 'TR': 'Turkey'
-                }
-            },
-            zh: {
-                loading: '正在加载...',
-                checkingAvailability: '请稍候，正在检查站点可用性',
-                proceed: '继续访问',
-                cancel: '取消',
-                needHelp: '需要帮助？请联系我们：',
-                retry: '重试',
-                error: '抱歉，暂时无法访问所有站点，请稍后重试。',
-                checkError: '检查过程中出现错误，请重试。',
-                cancelled: '您已取消访问。如果改变主意，请点击重试按钮重新检查。',
-                restrictedCountry: (country) => `注意：检测到您所在的国家/地区为${country}，<br>
-                    由于当地网络政策限制，连接可能不太稳定。<br>
-                    建议您使用VPN或代理服务来提高访问成功率。`,
-                countries: {
-                    'CN': '中国', 'IR': '伊朗', 'RU': '俄罗斯',
-                    'VN': '越南', 'TR': '土耳其'
-                }
-            },
-            ja: {
-                loading: '読み込み中...',
-                checkingAvailability: 'サイトの可用性を確認しています。お待ちください。',
-                proceed: '続行する',
-                cancel: 'キャンセル',
-                needHelp: 'サポートが必要な場合はお問い合わせください：',
-                retry: '再試行',
-                error: '申し訳ありません。現在すべてのサイトにアクセスできません。後でもう一度お試しください。',
-                checkError: '確認中にエラーが発生しました。もう一度お試しください。',
-                cancelled: 'アクセスをキャンセルしました。考えが変わった場合は再試行をクリックしてください。',
-                restrictedCountry: (country) => `注意：${country}からアクセスしていることを検出しました。<br>
-                    現地のネットワーク制限により、接続が不安定になる可能性があります。<br>
-                    VPNまたはプロキシサービスの使用をお勧めします。`,
-                countries: {
-                    'CN': '中国', 'IR': 'イラン', 'RU': 'ロシア',
-                    'VN': 'ベトナム', 'TR': 'トルコ'
-                }
-            },
-            ko: {
-                loading: '로딩 중...',
-                checkingAvailability: '사이트 가용성을 확인하는 중입니다. 잠시만 기다려주세요.',
-                proceed: '계속 진행',
-                cancel: '취소',
-                needHelp: '도움이 필요하신가요? 연락처:',
-                retry: '다시 시도',
-                error: '죄송합니다. 현재 모든 사이트에 접속할 수 없습니다. 나중에 다시 시도해주세요.',
-                checkError: '확인 중 오류가 발생했습니다. 다시 시도해주세요.',
-                cancelled: '접속이 취소되었습니다. 생각이 바뀌면 다시 시도를 클릭하세요.',
-                restrictedCountry: (country) => `주의: ${country}에서 접속 중인 것으로 감지되었습니다.<br>
-                    현지 네트워크 제한으로 인해 연결이 불안정할 수 있습니다.<br>
-                    VPN 또는 프록시 서비스 사용을 권장합니다.`,
-                countries: {
-                    'CN': '중국', 'IR': '이란', 'RU': '러시아',
-                    'VN': '베트남', 'TR': '터키'
-                }
-            },
-            es: {
-                loading: 'Cargando...',
-                checkingAvailability: 'Por favor espere mientras verificamos la disponibilidad del sitio.',
-                proceed: 'Continuar de todos modos',
-                cancel: 'Cancelar',
-                needHelp: '¿Necesita ayuda? Contáctenos en:',
-                retry: 'Intentar de nuevo',
-                error: 'Lo sentimos, todos los sitios están actualmente no disponibles. Por favor intente más tarde.',
-                checkError: 'Ocurrió un error durante la verificación. Por favor intente de nuevo.',
-                cancelled: 'Ha cancelado el acceso. Haga clic en reintentar si cambia de opinión.',
-                restrictedCountry: (country) => `Nota: Detectamos que está accediendo desde ${country}.<br>
-                    Debido a restricciones de red locales, la conexión podría ser inestable.<br>
-                    Recomendamos usar un servicio VPN o proxy para mejor acceso.`,
-                countries: {
-                    'CN': 'China', 'IR': 'Irán', 'RU': 'Rusia',
-                    'VN': 'Vietnam', 'TR': 'Turquía'
-                }
-            },
-            fr: {
-                loading: 'Chargement...',
-                checkingAvailability: 'Veuillez patienter pendant que nous vérifions la disponibilité du site.',
-                proceed: 'Continuer quand même',
-                cancel: 'Annuler',
-                needHelp: 'Besoin d\'aide ? Contactez-nous à :',
-                retry: 'Réessayer',
-                error: 'Désolé, tous les sites sont actuellement indisponibles. Veuillez réessayer plus tard.',
-                checkError: 'Une erreur s\'est produite lors de la vérification. Veuillez réessayer.',
-                cancelled: 'Vous avez annulé l\'accès. Cliquez sur réessayer si vous changez d\'avis.',
-                restrictedCountry: (country) => `Note : Nous avons détecté que vous accédez depuis ${country}.<br>
-                    En raison des restrictions réseau locales, la connexion peut être instable.<br>
-                    Nous recommandons d'utiliser un service VPN ou proxy pour un meilleur accès.`,
-                countries: {
-                    'CN': 'Chine', 'IR': 'Iran', 'RU': 'Russie',
-                    'VN': 'Vietnam', 'TR': 'Turquie'
-                }
-            },
-            de: {
-                loading: 'Laden...',
-                checkingAvailability: 'Bitte warten Sie, während wir die Verfügbarkeit der Website überprüfen.',
-                proceed: 'Trotzdem fortfahren',
-                cancel: 'Abbrechen',
-                needHelp: 'Brauchen Sie Hilfe? Kontaktieren Sie uns unter:',
-                retry: 'Erneut versuchen',
-                error: 'Entschuldigung, alle Websites sind derzeit nicht verfügbar. Bitte versuchen Sie es später erneut.',
-                checkError: 'Bei der Überprüfung ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.',
-                cancelled: 'Sie haben den Zugriff abgebrochen. Klicken Sie auf Wiederholen, wenn Sie Ihre Meinung ändern.',
-                restrictedCountry: (country) => `Hinweis: Wir haben festgestellt, dass Sie von ${country} aus zugreifen.<br>
-                    Aufgrund lokaler Netzwerkbeschränkungen könnte die Verbindung instabil sein.<br>
-                    Wir empfehlen die Verwendung eines VPN- oder Proxy-Dienstes für besseren Zugriff.`,
-                countries: {
-                    'CN': 'China', 'IR': 'Iran', 'RU': 'Russland',
-                    'VN': 'Vietnam', 'TR': 'Türkei'
-                }
-            },
-            it: {
-                loading: 'Caricamento...',
-                checkingAvailability: 'Attendere mentre verifichiamo la disponibilità del sito.',
-                proceed: 'Procedi comunque',
-                cancel: 'Annulla',
-                needHelp: 'Hai bisogno di aiuto? Contattaci a:',
-                retry: 'Riprova',
-                error: 'Spiacenti, tutti i siti sono attualmente non disponibili. Riprova più tardi.',
-                checkError: 'Si è verificato un errore durante la verifica. Riprova.',
-                cancelled: 'Hai annullato l\'accesso. Clicca su riprova se cambi idea.',
-                restrictedCountry: (country) => `Nota: Abbiamo rilevato che stai accedendo da ${country}.<br>
-                    A causa delle restrizioni di rete locali, la connessione potrebbe essere instabile.<br>
-                    Consigliamo di utilizzare un servizio VPN o proxy per un accesso migliore.`,
-                countries: {
-                    'CN': 'Cina', 'IR': 'Iran', 'RU': 'Russia',
-                    'VN': 'Vietnam', 'TR': 'Turchia'
-                }
-            },
-            pt: {
-                loading: 'Carregando...',
-                checkingAvailability: 'Por favor aguarde enquanto verificamos a disponibilidade do site.',
-                proceed: 'Continuar mesmo assim',
-                cancel: 'Cancelar',
-                needHelp: 'Precisa de ajuda? Contate-nos em:',
-                retry: 'Tentar novamente',
-                error: 'Desculpe, todos os sites estão indisponíveis no momento. Tente novamente mais tarde.',
-                checkError: 'Ocorreu um erro durante a verificação. Tente novamente.',
-                cancelled: 'Você cancelou o acesso. Clique em tentar novamente se mudar de ideia.',
-                restrictedCountry: (country) => `Nota: Detectamos que você está acessando de ${country}.<br>
-                    Devido a restrições de rede locais, a conexão pode estar instável.<br>
-                    Recomendamos usar um serviço VPN ou proxy para melhor acesso.`,
-                countries: {
-                    'CN': 'China', 'IR': 'Irã', 'RU': 'Rússia',
-                    'VN': 'Vietnã', 'TR': 'Turquia'
-                }
-            },
-            ru: {
-                loading: 'Загрузка...',
-                checkingAvailability: 'Пожалуйста, подождите, пока мы проверяем доступность сайта.',
-                proceed: 'Все равно продолжить',
-                cancel: 'Отмена',
-                needHelp: 'Нужна помощь? Свяжитесь с нами:',
-                retry: 'Повторить попытку',
-                error: 'Извините, все сайты в данный момент недоступны. Пожалуйста, повторите попытку позже.',
-                checkError: 'Произошла ошибка при проверке. Пожалуйста, повторите попытку.',
-                cancelled: 'Вы отменили доступ. Нажмите повторить попытку, если передумаете.',
-                restrictedCountry: (country) => `Примечание: Мы обнаружили, что вы заходите из ${country}.<br>
-                    Из-за местных сетевых ограничений соединение может быть нестабильным.<br>
-                    Рекомендуем использовать VPN или прокси-сервис для лучшего доступа.`,
-                countries: {
-                    'CN': 'Китай', 'IR': 'Иран', 'RU': 'Россия',
-                    'VN': 'Вьетнам', 'TR': 'Турция'
-                }
-            }
-        };
-
-        const app = createApp({
-            setup() {
-                const PRIMARY_SITE = 'https://user1.proxysite.pro/uc/';
-                const BACKUP_SITE = 'https://workpanel.pages.dev/uc/';
-                
-                const checking = ref(true);
-                const errorMessage = ref('');
-                const noScript = ref(false);
-                const countryNotice = ref('');
-                const showCountryWarning = ref(false);
-                const workingSite = ref('');
-
-
-                const userLang = computed(() => {
-                    const lang = navigator.language || navigator.userLanguage;
-                    const primaryLang = lang.split('-')[0];
-                    return translations[primaryLang] ? primaryLang : 'en';
+        async function checkSite(url, retryCount = 0) {
+            try {
+                const img = new Image();
+                const checkPromise = new Promise((resolve, reject) => {
+                    img.onload = () => resolve(true);
+                    img.onerror = () => reject(new Error('Failed to load'));
+                    img.src = url + 'favicon.ico?' + new Date().getTime();
                 });
 
+                await Promise.race([
+                    checkPromise,
+                    new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('Timeout')), TIMEOUT)
+                    )
+                ]);
 
-                const t = (key, ...args) => {
-                    const translation = translations[userLang.value][key];
-                    if (typeof translation === 'function') {
-                        return translation(...args);
-                    }
-                    return translation;
-                };
-
-                const checkCountry = async () => {
-                    try {
-                        const response = await fetch('https://ipinfo.io/json');
-                        const data = await response.json();
-                        
-                        if (translations[userLang.value].countries[data.country]) {
-                            countryNotice.value = t('restrictedCountry', 
-                                translations[userLang.value].countries[data.country]
-                            );
-                            return true;
-                        }
-                        return false;
-                    } catch (error) {
-                        console.error('Cannot detect location');
-                        return false;
-                    }
-                };
-
-                const checkSite = async (url) => {
-                    try {
-                        const controller = new AbortController();
-                        const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-                        const response = await fetch(url, {
-                            mode: 'no-cors',
-                            signal: controller.signal
-                        });
-                        
-                        clearTimeout(timeoutId);
-                        return true;
-                    } catch (error) {
-                        return false;
-                    }
-                };
-
-                const findWorkingSite = async () => {
-                    try {
-                        const isRestrictedCountry = await checkCountry();
-                        await new Promise(resolve => setTimeout(resolve, 2000));
-
-                        const [primaryStatus, backupStatus] = await Promise.all([
-                            checkSite(PRIMARY_SITE),
-                            checkSite(BACKUP_SITE)
-                        ]);
-
-                        if (primaryStatus) {
-                            if (isRestrictedCountry) {
-                                workingSite.value = PRIMARY_SITE;
-                                showCountryWarning.value = true;
-                                checking.value = false;
-                                return;
-                            }
-                            window.location.href = PRIMARY_SITE;
-                            return;
-                        }
-
-                        if (backupStatus) {
-                            if (isRestrictedCountry) {
-                                workingSite.value = BACKUP_SITE;
-                                showCountryWarning.value = true;
-                                checking.value = false;
-                                return;
-                            }
-                            window.location.href = BACKUP_SITE;
-                            return;
-                        }
-
-                        checking.value = false;
-                        errorMessage.value = t('error');
-                    } catch (error) {
-                        checking.value = false;
-                        errorMessage.value = t('checkError');
-                    }
-                };
-
-                const proceedAnyway = () => {
-                    if (workingSite.value) {
-                        window.location.href = workingSite.value;
-                    }
-                };
-
-                const cancelAccess = () => {
-                    showCountryWarning.value = false;
-                    checking.value = false;
-                    errorMessage.value = t('cancelled');
-                };
-
-                const retryCheck = () => {
-                    checking.value = true;
-                    errorMessage.value = '';
-                    showCountryWarning.value = false;
-                    workingSite.value = '';
-                    findWorkingSite();
-                };
-
-                findWorkingSite();
-
-                return {
-                    checking,
-                    errorMessage,
-                    noScript,
-                    countryNotice,
-                    showCountryWarning,
-                    retryCheck,
-                    proceedAnyway,
-                    cancelAccess,
-                    t
-                };
+                return true;
+            } catch (error) {
+                if (retryCount < MAX_RETRIES) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    return checkSite(url, retryCount + 1);
+                }
+                return false;
             }
-        });
+        }
 
-        app.mount('#app');
-    </script>
-    
+        async function findWorkingSite() {
+            await new Promise(resolve => setTimeout(resolve, 1000));
 
-    <script type="text/javascript">var _Hasync= _Hasync|| [];
-    _Hasync.push(['Histats.start', '1,4932638,4,0,0,0,00010000']);
-    _Hasync.push(['Histats.fasi', '1']);
-    _Hasync.push(['Histats.track_hits', '']);
-    (function() {
-    var hs = document.createElement('script'); hs.type = 'text/javascript'; hs.async = true;
-    hs.src = ('//s10.histats.com/js15_as.js');
-    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(hs);
-    })();</script>
-    <noscript><a href="/" target="_blank"><img src="//sstatic1.histats.com/0.gif?4932638&101" alt="counter" border="0"></a></noscript>
+            try {
+                const [primaryStatus, backupStatus] = await Promise.all([
+                    checkSite(PRIMARY_SITE),
+                    checkSite(BACKUP_SITE)
+                ]);
+
+                if (primaryStatus) {
+                    console.log('Primary site is accessible');
+                    window.location.href = PRIMARY_SITE;
+                    return;
+                }
+
+                if (backupStatus) {
+                    console.log('Backup site is accessible');
+                    window.location.href = BACKUP_SITE;
+                    return;
+                }
+
+                throw new Error('No sites available');
+            } catch (error) {
+                console.error('Error checking sites:', error);
+                document.querySelector('.loading').innerHTML = `
+                    <p class="error-message">
+                        We're experiencing some issues. Please try again later.
+                    </p>
+                    <button class="retry-button" onclick="location.reload()">Try Again</button>
+                    <p class="contact">
+                        Need help? Contact us at:<br>
+                        <a href="mailto:support@best-server.work">support@best-server.work</a>
+                    </p>
+                `;
+            }
+        }
+
+        findWorkingSite();
+    </script>   
 </body>
 </html>
