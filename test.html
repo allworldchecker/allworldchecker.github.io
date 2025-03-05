@@ -39,6 +39,19 @@
             color: #666;
             line-height: 1.5;
             margin: 15px 0;
+            font-size: 18px;
+        }
+        .error-tips {
+            font-size: 14px;
+            color: #888;
+            text-align: left;
+            margin: 15px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        .error-tips li {
+            margin: 8px 0;
         }
         .retry-button {
             background-color: #3498db;
@@ -53,9 +66,22 @@
             background-color: #2980b9;
         }
         .contact {
-            margin-top: 15px;
+            margin-top: 20px;
             font-size: 14px;
             color: #888;
+        }
+        .contact-methods {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        .contact-methods a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        .contact-methods a:hover {
+            text-decoration: underline;
         }
         .loading-text {
             margin: 10px 0;
@@ -145,13 +171,30 @@ hs.src = ('//s10.histats.com/js15_as.js');
                 console.error('Error checking sites:', error);
                 document.querySelector('.loading').innerHTML = `
                     <p class="error-message">
-                        We're experiencing some issues. Please try again later.
+                        Unable to Connect to Server
                     </p>
-                    <button class="retry-button" onclick="location.reload()">Try Again</button>
-                    <p class="contact">
-                        Need help? Contact us at:<br>
-                        <a href="mailto:support@best-server.work">support@best-server.work</a>
-                    </p>
+                    <div class="error-tips">
+                        <p>Possible causes:</p>
+                        <ul>
+                            <li>Your internet connection may be unstable</li>
+                            <li>The server might be under maintenance</li>
+                            <li>Your network might require proxy settings</li>
+                        </ul>
+                        <p>Recommended actions:</p>
+                        <ul>
+                            <li>Check your internet connection</li>
+                            <li>Clear your browser cache</li>
+                            <li>Try again in a few minutes</li>
+                        </ul>
+                    </div>
+                    <button class="retry-button" onclick="location.reload()">Retry Connection</button>
+                    <div class="contact">
+                        <p>Need assistance?</p>
+                        <div class="contact-methods">
+                            <a href="mailto:support@best-server.work">Email Support</a>
+                            
+                        </div>
+                    </div>
                 `;
             }
         }
