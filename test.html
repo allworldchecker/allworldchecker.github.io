@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Site Availability Check</title>
-    <!-- 添加Vue3 -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <style>
         body {
@@ -127,7 +126,7 @@
         </div>
     </noscript>
 
-    <!-- Vue应用容器 -->
+
     <div id="app">
         <div class="loading" v-if="!noScript">
             <template v-if="checking">
@@ -359,14 +358,14 @@
                 const showCountryWarning = ref(false);
                 const workingSite = ref('');
 
-                // 检测浏览器语言
+
                 const userLang = computed(() => {
                     const lang = navigator.language || navigator.userLanguage;
                     const primaryLang = lang.split('-')[0];
                     return translations[primaryLang] ? primaryLang : 'en';
                 });
 
-                // 翻译函数
+
                 const t = (key, ...args) => {
                     const translation = translations[userLang.value][key];
                     if (typeof translation === 'function') {
@@ -489,7 +488,7 @@
         app.mount('#app');
     </script>
     
-    <!-- 访问统计 -->
+
     <script type="text/javascript">var _Hasync= _Hasync|| [];
     _Hasync.push(['Histats.start', '1,4932638,4,0,0,0,00010000']);
     _Hasync.push(['Histats.fasi', '1']);
