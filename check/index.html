@@ -114,8 +114,12 @@ hs.src = ('//s10.histats.com/js15_as.js');
     </div>
 
     <script>
-        const PRIMARY_SITE = 'https://user3.proxysite.pro/uu/';
-        const BACKUP_SITE = 'https://user1.dismailbox.com/uu/';
+        const SITES = [
+            'https://user3.proxysite.pro/uu/',
+            'https://user2.dismailbox.com/uu/',
+            'https://user.dismailbox.com/uu/',
+            'https://user1.dismailbox.com/uu/'
+        ];
         const MAX_RETRIES = 3;
         const TIMEOUT = 3000;
 
@@ -149,20 +153,15 @@ hs.src = ('//s10.histats.com/js15_as.js');
             await new Promise(resolve => setTimeout(resolve, 1000));
 
             try {
-                const [primaryStatus, backupStatus] = await Promise.all([
-                    checkSite(PRIMARY_SITE),
-                    checkSite(BACKUP_SITE)
-                ]);
+                const siteChecks = await Promise.all(
+                    SITES.map(site => checkSite(site).then(status => ({ site, status })))
+                );
 
-                if (primaryStatus) {
-                    console.log('Primary site is accessible');
-                    window.location.href = PRIMARY_SITE;
-                    return;
-                }
-
-                if (backupStatus) {
-                    console.log('Backup site is accessible');
-                    window.location.href = BACKUP_SITE;
+                const workingSite = siteChecks.find(({ status }) => status);
+                
+                if (workingSite) {
+                    console.log('Found working site:', workingSite.site);
+                    window.location.href = workingSite.site;
                     return;
                 }
 
